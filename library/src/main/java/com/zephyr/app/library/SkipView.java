@@ -11,10 +11,13 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
+import android.os.Debug;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.LinearInterpolator;
@@ -44,7 +47,7 @@ public class SkipView extends View {
     private float mTextBaseLineY;
     private float mTextStartX;
     private float mSwapAngle;
-    private boolean isAnimating;
+    private boolean isAnimating = true;
     private int mTime;
     private float[] mTextWidthArray = new float[1];
 
@@ -132,10 +135,8 @@ public class SkipView extends View {
         canvas.drawCircle(mCenterX, mCenterX, mCircleRadius, mBgPaint);
         canvas.drawText(String.valueOf(mTime), mTextStartX, mTextBaseLineY, mTextPaint);
 
-        mBgPath.addCircle(mCenterX, mCenterY, mCircleRadius + mCircleBoundWidth / 2, Path.Direction.CCW);
-        mPath.arcTo(mRectF, 0, mSwapAngle, true);
-        canvas.drawPath(mBgPath, mBgPathPaint);
-        canvas.drawPath(mPath, mProgressPaint);
+        canvas.drawArc(mRectF, mSwapAngle, 360- mSwapAngle, false, mBgPathPaint);
+        canvas.drawArc(mRectF, 0, mSwapAngle, false, mProgressPaint);
     }
 
     private int getDimensions(int mode, int size) {
@@ -154,7 +155,7 @@ public class SkipView extends View {
     }
 
     public void setProgress(float angle) {
-        mSwapAngle = angle;
+        this.mSwapAngle = angle / 100 * 360f;
         invalidate();
     }
 
@@ -167,7 +168,7 @@ public class SkipView extends View {
 
     private void startProgress() {
         final int duration = mTime * 1000;
-        ObjectAnimator progressAnim = ObjectAnimator.ofFloat(this, "progress", 0F, 360.0F);
+        final ObjectAnimator progressAnim = ObjectAnimator.ofFloat(this, "progress", 0F, 100.0F);
         progressAnim.setInterpolator(new AccelerateInterpolator());
         ObjectAnimator timeAnim = ObjectAnimator.ofInt(this, "time", mTime, 0);
         timeAnim.setInterpolator(new LinearInterpolator());
@@ -185,6 +186,15 @@ public class SkipView extends View {
         });
         set.start();
         isAnimating = true;
+    }
+
+    public void startAnimation() {
+        mPath.reset();
+        mBgPath.reset();
+        isAnimating = false;
+        mSwapAngle = 0;
+        mTime = 2;
+        invalidate();
     }
 
     public void setOnProgressListener(OnProgressListener listener) {
